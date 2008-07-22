@@ -1,0 +1,11 @@
+#!perl
+# $Id: sort-books,v 1.1 2008/07/22 17:04:46 drhyde Exp $
+
+use strict;
+use warnings;
+
+use vars qw($VERSION);
+
+use Sort::MultipleFields;
+
+$VERSION = '1.0';
