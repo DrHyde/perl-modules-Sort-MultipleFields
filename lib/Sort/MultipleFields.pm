@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.2 2008/07/23 17:36:06 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.3 2008/07/23 22:54:29 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -24,20 +24,20 @@ Sort::MultipleFields - Conveniently sort on multiple fields
 
     my $library = mfsort {
         author => 'ascending',
-	title  => 'ascending'
+        title  => 'ascending'
     } (
-	{
-	    author => 'Hoyle, Fred',
-	    title  => 'Black Cloud, The'
-	},
-	{
-	    author => 'Clarke, Arthur C',
-	    title  => 'Rendezvous with Rama'
-	},
         {
-	    author => 'Clarke, Arthur C',
-	    title  => 'Islands In The Sky'
-	}
+            author => 'Hoyle, Fred',
+            title  => 'Black Cloud, The'
+        },
+        {
+            author => 'Clarke, Arthur C',
+            title  => 'Rendezvous with Rama'
+        },
+        {
+            author => 'Clarke, Arthur C',
+            title  => 'Islands In The Sky'
+        }
     );
 
 after which C<$library> would be a reference to a list of three hashrefs,
@@ -70,11 +70,11 @@ The sort specification is a block structured thus:
 
     {
         field1 => 'ascending',
-	field2 => 'descending',
-	field3 => sub {
-	    
-	},
-	...
+        field2 => 'descending',
+        field3 => sub {
+            lc($_[0]) cmp lc($_[1]) # case-insensitive ascending
+        },
+        ...
     }
 
 Yes, it looks like a hash.  But it's not, it's a block that returns a
@@ -128,20 +128,20 @@ sub mfsort(&@) {
     my $sortsub = sub { 0 }; # default is to not sort at all
     while(@spec) { # eat this from the end towards the beginning
         my($spec, $field) = (pop(@spec), pop(@spec));
-	die(__PACKAGE__."::mfsort: malformed spec after $field\n")
-	    unless(defined($spec));
+        die(__PACKAGE__."::mfsort: malformed spec after $field\n")
+            unless(defined($spec));
         if(!ref($spec)) { # got a string
             $spec = ($spec =~ /^asc(ending)?$/i)     ? sub { $_[0] cmp $_[1] } :
                     ($spec =~ /^desc(ending)?$/i)    ? sub { $_[1] cmp $_[0] } :
                     ($spec =~ /^numasc(ending)?$/i)  ? sub { $_[0] <=> $_[1] } :
                     ($spec =~ /^numdesc(ending)?$/i) ? sub { $_[1] <=> $_[0] } :
-	            die(__PACKAGE__."::mfsort: Unknown shortcut '$spec'\n");
+                    die(__PACKAGE__."::mfsort: Unknown shortcut '$spec'\n");
         }
-	my $oldsortsub = $sortsub;
-	$sortsub = sub {
-	    $spec->($_[0]->{$field}, $_[1]->{$field}) ||
-	    $oldsortsub->($_[0], $_[1])
-	}
+        my $oldsortsub = $sortsub;
+        $sortsub = sub {
+            $spec->($_[0]->{$field}, $_[1]->{$field}) ||
+            $oldsortsub->($_[0], $_[1])
+        }
     }
     @records = sort { $sortsub->($a, $b) } @records;
     return wantarray() ? @records : \@records;
