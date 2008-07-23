@@ -1,5 +1,5 @@
 #!perl -w
-# $Id: 00_regression.t,v 1.1 2008/07/23 17:36:06 drhyde Exp $
+# $Id: 00_regression.t,v 1.2 2008/07/23 19:23:13 drhyde Exp $
 
 use strict;
 
@@ -102,7 +102,7 @@ is_deeply(
 );
 
 is_deeply(
-    [mfsort { author => 'asc', title => 'asc' } $library],
+    [mfsort sub { author => 'asc', title => 'asc' }, $library],
     [
         { author => 'Asimov', title => 'David Starr, Space Ranger' },
         { author => 'Asimov', title => 'Foundation' },
@@ -117,7 +117,7 @@ is_deeply(
 
 is_deeply(
     # sort by author, title, and reverse publication date
-    [mfsort { author => 'asc', title => 'asc', year => 'desc' } [
+    [mfsort sub { author => 'asc', title => 'asc', year => 'desc' }, [
 	# unsort the input ...
 	sort {
 	    rand() < 0.5 ? -1 : 1
@@ -132,16 +132,16 @@ is_deeply(
             { %{$_}, year => 2003 },
             { %{$_}, year => 2002 },
             { %{$_}, year => 2001 },
-	} mfsort {
+	} mfsort sub {
 	    author => 'asc', title => 'asc'
-	} $library
+	},  $library
     ],
     "three-field sort works"
 );
 
 is_deeply(
     # sort by author, title, reverse publication date, and colour(!)
-    [mfsort {
+    [mfsort sub {
         author => 'asc',
 	title => 'asc',
 	year => 'desc',
@@ -157,7 +157,7 @@ is_deeply(
 	    } @_;
 	    $in[0] <=> $in[1];
 	}
-    } [
+    }, [
 	# unsort the input ...
 	sort {
 	    rand() < 0.5 ? -1 : 1
@@ -180,9 +180,9 @@ is_deeply(
             { %{$_}, year => 2003 },
             { %{$_}, year => 2002 },
             { %{$_}, year => 2001 },
-	} mfsort {
+	} mfsort sub {
 	    author => 'asc', title => 'asc'
-	} $library
+	}, $library
     ],
     "four-field sort works, including a Mad Sort"
 );
