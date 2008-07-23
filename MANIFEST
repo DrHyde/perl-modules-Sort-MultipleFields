@@ -1,0 +1,12 @@
+t/pod-coverage.t
+t/00_regression.t
+t/pod.t
+lib/Sort/MultipleFields.pm
+examples/sort-books
+ARTISTIC.txt
+GPL2.txt
+Makefile.PL
+README
+CHANGES
+TODO
+MANIFEST

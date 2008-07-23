@@ -1,14 +1,15 @@
-# $Id: MultipleFields.pm,v 1.1 2008/07/22 17:04:46 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.2 2008/07/23 17:36:06 drhyde Exp $
 
-package Palm::MultipleFields;
+package Sort::MultipleFields;
 
 use strict;
 use warnings;
 
 use vars qw($VERSION @EXPORT_OK);
 
-require Exporter;
+use Scalar::Util qw(reftype);
 
+use Exporter qw(import);
 @EXPORT_OK = qw(mfsort);
 
 $VERSION = '1.0';
@@ -63,59 +64,87 @@ Default-export is bad and wrong and people who do it should be spanked.
     @sorted = mfsort { SORT SPEC } @unsorted;
 
 Takes a sort specification and a list (or list-ref) of references to hashes.
-It returns either a list or a list-ref (depending on context).
+It returns either a list or a list-ref, depending on context.
 
 The sort specification is a block structured thus:
 
     {
-        field1 => 'ascending',            # you can say 'asc' instead
-	                                  # also 'descending' or 'desc'
-	field2 => sub { $_[1] <=> $_[0] }
-	field3 => ['ascending', sub { lc(shift) }]
+        field1 => 'ascending',
+	field2 => 'descending',
+	field3 => sub {
+	    
+	},
 	...
     }
 
-Yes, it looks like a hash.  But it's not, it's a block, and order matters.
-That spec is for a sort first on field1, going up; then for all cases where
-field1 is the same, sort on field2, going down and doing numeric comparisons;
-then for all cases where
-both field1 and field2 are the same, sort on field3, going up, and apply
-the transformation to each element before sorting.
+Yes, it looks like a hash.  But it's not, it's a block that returns a
+list, and order matters.
 
-More formally, the spec can be considered to be a list of field / spec pairs,
-where the field is the name of the field in the input hashes, and the spec can
-be either a sort function or a listref of a sort function and a transformation.
-
-For convenience the sort function can be abbreviated to be one of the
-following strings:
+The spec is a list of pairs, each consisting of a field to sort on, and
+how to sort it.  How to sort is simply a function that, when given a
+pair of pieces of data, will return -1, 0 or 1 depending on whether the first
+argument is "less than", equal to, or "greater than" the second argument.
+Sounds familiar, doesn't it.  As short-cuts for the most common sorts,
+the following case-insensitive strings will work:
 
 =over
 
 =item ascending, or asc
 
-Sort ASCIIbetically, ascending
+Sort ASCIIbetically, ascending (ie C<$a cmp $b>)
 
 =item descending, or desc
 
-Sort ASCIIbetically, descending
+Sort ASCIIbetically, descending (ie C<$b cmp $a>)
+
+=item numascending, or numasc
+
+Sort numerically, ascending (ie C<$a <=> $b>)
+
+=item numdescending, or numdesc
+
+Sort numerically, descending (ie C<$b <=> $a>)
 
 =back
 
-A transformation can be
-arbitrarily complex.  So you could, for example, use it to smash all data to
-ASCII using Text::Unidecode and sort numeric parts numerically instead of
-ASCIIbetically using Sort::Naturally.
-
 Really old versions
-of perl might require that you instead pass it as a subroutine reference:
+of perl might require that you instead pass the sort spec as an
+anonymous subroutine.
 
     mfsort sub { ... }, @list
 
 =cut
 
-sub mfsort {
+sub mfsort(&@) {
     my $spec = shift;
-    $spec = [
+    die(__PACKAGE__."::mfsort: no sort spec\n") unless(reftype($spec) eq 'CODE');
+    my @spec = $spec->();
+
+    my @records = @_;
+    @records = @{$records[0]} if(reftype($records[0]) eq 'ARRAY');
+    (grep { reftype($_) ne 'HASH' } @records) &&
+        die(__PACKAGE__."::mfsort: Can only sort hash-refs\n");
+
+    my $sortsub = sub { 0 }; # default is to not sort at all
+    while(@spec) { # eat this from the end towards the beginning
+        my($spec, $field) = (pop(@spec), pop(@spec));
+	die(__PACKAGE__."::mfsort: malformed spec after $field\n")
+	    unless(defined($spec));
+        if(!ref($spec)) { # got a string
+            $spec = ($spec =~ /^asc(ending)?$/i)     ? sub { $_[0] cmp $_[1] } :
+                    ($spec =~ /^desc(ending)?$/i)    ? sub { $_[1] cmp $_[0] } :
+                    ($spec =~ /^numasc(ending)?$/i)  ? sub { $_[0] <=> $_[1] } :
+                    ($spec =~ /^numdesc(ending)?$/i) ? sub { $_[1] <=> $_[0] } :
+	            die(__PACKAGE__."::mfsort: Unknown shortcut '$spec'\n");
+        }
+	my $oldsortsub = $sortsub;
+	$sortsub = sub {
+	    $spec->($_[0]->{$field}, $_[1]->{$field}) ||
+	    $oldsortsub->($_[0], $_[1])
+	}
+    }
+    @records = sort { $sortsub->($a, $b) } @records;
+    return wantarray() ? @records : \@records;
 }
 
 =head1 BUGS, LIMITATIONS and FEEDBACK
