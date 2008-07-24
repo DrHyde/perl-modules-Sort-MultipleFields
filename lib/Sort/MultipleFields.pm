@@ -1,15 +1,17 @@
-# $Id: MultipleFields.pm,v 1.6 2008/07/24 18:03:59 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.7 2008/07/24 21:05:32 drhyde Exp $
 
 package Sort::MultipleFields;
 
 use strict;
 use warnings;
 
-use vars qw($VERSION @EXPORT_OK);
+use vars qw($VERSION @EXPORT_OK @ISA);
 
 use Scalar::Util qw(reftype);
 
-use Exporter qw(import);
+use Exporter; # 5.6's Exporter doesn't export its import function, so
+              # need to do the inheritance dance.  Joy.
+@ISA = qw(Exporter);
 @EXPORT_OK = qw(mfsort mfsortmaker);
 
 $VERSION = '1.0';
