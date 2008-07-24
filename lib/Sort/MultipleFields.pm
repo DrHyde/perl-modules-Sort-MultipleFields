@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.3 2008/07/23 22:54:29 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.4 2008/07/24 17:17:21 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -10,9 +10,11 @@ use vars qw($VERSION @EXPORT_OK);
 use Scalar::Util qw(reftype);
 
 use Exporter qw(import);
-@EXPORT_OK = qw(mfsort);
+@EXPORT_OK = qw(mfsort mfsortmaker);
 
 $VERSION = '1.0';
+
+my $subcounter = 0;
 
 =head1 NAME
 
@@ -52,7 +54,7 @@ within each author sort by title.
 
 =head1 EXPORTS
 
-The mfsort subroutine may be exported if you wish, but is not exported by
+The subroutines may be exported if you wish, but are not exported by
 default.
 
 Default-export is bad and wrong and people who do it should be spanked.
@@ -117,34 +119,66 @@ anonymous subroutine.
 
 sub mfsort(&@) {
     my $spec = shift;
-    die(__PACKAGE__."::mfsort: no sort spec\n") unless(reftype($spec) eq 'CODE');
-    my @spec = $spec->();
-
     my @records = @_;
     @records = @{$records[0]} if(reftype($records[0]) eq 'ARRAY');
     (grep { reftype($_) ne 'HASH' } @records) &&
         die(__PACKAGE__."::mfsort: Can only sort hash-refs\n");
 
-    my $sortsub = sub { 0 }; # default is to not sort at all
+    my $sortsub = mfsortmaker($spec);
+    @records = sort { $sortsub->($a, $b) } @records;
+    return wantarray() ? @records : \@records;
+}
+
+=head2 mfsortmaker
+
+This takes a sort spec exactly as C<mfsort> but returns the name of a
+subroutine that you can use with the built-in C<sort>.
+
+    my $sorter = mfsortmaker {
+        author => 'asc',
+        title  => 'asc'
+    };
+    @sorted = sort $sorter @unsorted;
+
+=cut
+
+# NB contrary to the above doco, if called from within this package it
+# returns a subref, to avoid segfaults in 5.8.8
+
+sub mfsortmaker($) {
+    my $spec = shift;
+    die(__PACKAGE__."::mfsortmaker: no sort spec\n") unless(reftype($spec) eq 'CODE');
+
+    my @spec = $spec->();
+    my $sortname = __PACKAGE__.'::__generated_'.$subcounter; $subcounter++;
+
+    my $sortsub = sub($$) { 0 }; # default is to not sort at all
     while(@spec) { # eat this from the end towards the beginning
         my($spec, $field) = (pop(@spec), pop(@spec));
-        die(__PACKAGE__."::mfsort: malformed spec after $field\n")
+        die(__PACKAGE__."::mfsortmaker: malformed spec after $field\n")
             unless(defined($spec));
         if(!ref($spec)) { # got a string
             $spec = ($spec =~ /^asc(ending)?$/i)     ? sub { $_[0] cmp $_[1] } :
                     ($spec =~ /^desc(ending)?$/i)    ? sub { $_[1] cmp $_[0] } :
                     ($spec =~ /^numasc(ending)?$/i)  ? sub { $_[0] <=> $_[1] } :
                     ($spec =~ /^numdesc(ending)?$/i) ? sub { $_[1] <=> $_[0] } :
-                    die(__PACKAGE__."::mfsort: Unknown shortcut '$spec'\n");
+                    die(__PACKAGE__."::mfsortmaker: Unknown shortcut '$spec'\n");
         }
         my $oldsortsub = $sortsub;
-        $sortsub = sub {
+        $sortsub = sub($$) {
             $spec->($_[0]->{$field}, $_[1]->{$field}) ||
             $oldsortsub->($_[0], $_[1])
         }
     }
-    @records = sort { $sortsub->($a, $b) } @records;
-    return wantarray() ? @records : \@records;
+    if((caller(1))[3] && (caller(1))[3] eq __PACKAGE__.'::mfsort') {
+        return $sortsub;
+    } else {
+        {
+            no strict 'refs';
+            *{$sortname} = \&{$sortsub};
+        }
+        return $sortname;
+    }
 }
 
 =head1 BUGS, LIMITATIONS and FEEDBACK

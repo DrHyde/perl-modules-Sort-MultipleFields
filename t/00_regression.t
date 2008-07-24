@@ -1,11 +1,11 @@
 #!perl -w
-# $Id: 00_regression.t,v 1.2 2008/07/23 19:23:13 drhyde Exp $
+# $Id: 00_regression.t,v 1.3 2008/07/24 17:17:22 drhyde Exp $
 
 use strict;
 
-use Test::More tests => 17;
+use Test::More tests => 18;
 
-use Sort::MultipleFields qw(mfsort);
+use Sort::MultipleFields qw(mfsort mfsortmaker);
 
 my $library = [
     { author => 'Hoyle',  title => 'Black Cloud, The' },
@@ -87,15 +87,15 @@ is_deeply(
 # sort function instead of shortcut
 is_deeply(
     [map { $_->{author} } mfsort(
-	# this should sort C, then H, then A
+        # this should sort C, then H, then A
         sub { author => sub {
-	    return -1 if($_[0] =~ '^C');
-	    return  1 if($_[1] =~ '^C');
-	    return  1 if($_[0] =~ '^A');
-	    return -1 if($_[1] =~ '^A');
-	    return  0;
-	} },
-	$library
+            return -1 if($_[0] =~ '^C');
+            return  1 if($_[1] =~ '^C');
+            return  1 if($_[0] =~ '^A');
+            return -1 if($_[1] =~ '^A');
+            return  0;
+        } },
+        $library
     )],
     [qw(Clarke Clarke Clarke Hoyle Asimov Asimov Asimov)],
     'user-supplied sort function works'
@@ -118,9 +118,9 @@ is_deeply(
 is_deeply(
     # sort by author, title, and reverse publication date
     [mfsort sub { author => 'asc', title => 'asc', year => 'desc' }, [
-	# unsort the input ...
-	sort {
-	    rand() < 0.5 ? -1 : 1
+        # unsort the input ...
+        sort {
+            rand() < 0.5 ? -1 : 1
         } map {
             { %{$_}, year => 2001 },
             { %{$_}, year => 2002 },
@@ -132,57 +132,66 @@ is_deeply(
             { %{$_}, year => 2003 },
             { %{$_}, year => 2002 },
             { %{$_}, year => 2001 },
-	} mfsort sub {
-	    author => 'asc', title => 'asc'
-	},  $library
+        } mfsort sub {
+            author => 'asc', title => 'asc'
+        },  $library
     ],
     "three-field sort works"
 );
 
+my $crazysort = sub {
+    author => 'asc',
+    title => 'asc',
+    year => 'desc',
+    colour => sub { 
+        my @in = map {
+            $_ eq 'red'    ? 0 :
+            $_ eq 'orange' ? 1 :
+            $_ eq 'yellow' ? 2 :
+            $_ eq 'green'  ? 3 :
+            $_ eq 'blue'   ? 4 :
+            $_ eq 'indigo' ? 5 :
+                             6
+        } @_;
+        $in[0] <=> $in[1];
+    }
+};
+my $crazyinput = [
+    sort {
+        rand() < 0.5 ? -1 : 1
+    } map {
+        { %{$_}, year => 2001 },
+        { %{$_}, year => 2002 },
+        { %{$_}, year => 2003 },
+    } map {
+        my $in = $_;
+        map { { %{$in}, colour => $_ } }
+            qw(red orange yellow green blue indigo violet)
+    } @{$library}
+];
+my $crazyoutput = [
+    map {
+        my $in = $_;
+        map { { %{$in}, colour => $_ } }
+            qw(red orange yellow green blue indigo violet)
+    } map {
+        { %{$_}, year => 2003 },
+        { %{$_}, year => 2002 },
+        { %{$_}, year => 2001 },
+    } mfsort sub {
+        author => 'asc', title => 'asc'
+    }, $library
+];
 is_deeply(
     # sort by author, title, reverse publication date, and colour(!)
-    [mfsort sub {
-        author => 'asc',
-	title => 'asc',
-	year => 'desc',
-	colour => sub { 
-	    my @in = map {
-	        $_ eq 'red'    ? 0 :
-	        $_ eq 'orange' ? 1 :
-	        $_ eq 'yellow' ? 2 :
-	        $_ eq 'green'  ? 3 :
-	        $_ eq 'blue'   ? 4 :
-	        $_ eq 'indigo' ? 5 :
-	                         6
-	    } @_;
-	    $in[0] <=> $in[1];
-	}
-    }, [
-	# unsort the input ...
-	sort {
-	    rand() < 0.5 ? -1 : 1
-	} map {
-            { %{$_}, year => 2001 },
-            { %{$_}, year => 2002 },
-            { %{$_}, year => 2003 },
-        } map {
-	    my $in = $_;
-            map { { %{$in}, colour => $_ } }
-	        qw(red orange yellow green blue indigo violet)
-        } @{$library}
-    ]],
-    [
-        map {
-	    my $in = $_;
-            map { { %{$in}, colour => $_ } }
-	        qw(red orange yellow green blue indigo violet)
-        } map {
-            { %{$_}, year => 2003 },
-            { %{$_}, year => 2002 },
-            { %{$_}, year => 2001 },
-	} mfsort sub {
-	    author => 'asc', title => 'asc'
-	}, $library
-    ],
+    [mfsort \&{$crazysort}, $crazyinput],
+    $crazyoutput,
     "four-field sort works, including a Mad Sort"
+);
+my $func = mfsortmaker($crazysort);
+is_deeply(
+    # sort by author, title, reverse publication date, and colour(!)
+    [sort $func @{$crazyinput}],
+    $crazyoutput,
+    "mfsortmaker works"
 );
