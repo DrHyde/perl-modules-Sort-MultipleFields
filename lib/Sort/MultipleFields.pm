@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.4 2008/07/24 17:17:21 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.5 2008/07/24 17:44:22 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -124,12 +124,15 @@ sub mfsort(&@) {
     (grep { reftype($_) ne 'HASH' } @records) &&
         die(__PACKAGE__."::mfsort: Can only sort hash-refs\n");
 
-    my $sortsub = mfsortmaker($spec);
+    my $sortsub = mfsortmaker($spec, 1);
     @records = sort { $sortsub->($a, $b) } @records;
     return wantarray() ? @records : \@records;
 }
 
 =head2 mfsortmaker
+
+This function is only available in perl 5.10.0 and higher.  It is a
+fatal error to use it on any earlier version of perl.
 
 This takes a sort spec exactly as C<mfsort> but returns the name of a
 subroutine that you can use with the built-in C<sort>.
@@ -142,11 +145,18 @@ subroutine that you can use with the built-in C<sort>.
 
 =cut
 
-# NB contrary to the above doco, if called from within this package it
+# NB contrary to the above doco, if called with a true second arg it
 # returns a subref, to avoid segfaults in 5.8.8
 
 sub mfsortmaker($) {
     my $spec = shift;
+    my $calledfrommfsort = shift;
+    die(
+        __PACKAGE__."::mfsortmaker: your perl is too old for this function\n".
+	'It was called from '.join(' ', (caller(1))[1, 3]).".\n".
+	"This is a bug in the calling code\n"
+    ) if($] < 5.010 && !$calledfrommfsort);
+
     die(__PACKAGE__."::mfsortmaker: no sort spec\n") unless(reftype($spec) eq 'CODE');
 
     my @spec = $spec->();
@@ -170,7 +180,7 @@ sub mfsortmaker($) {
             $oldsortsub->($_[0], $_[1])
         }
     }
-    if((caller(1))[3] && (caller(1))[3] eq __PACKAGE__.'::mfsort') {
+    if($calledfrommfsort) {
         return $sortsub;
     } else {
         {

@@ -10,3 +10,5 @@ README
 CHANGES
 TODO
 MANIFEST
+t/00_regression_510.t
+t/00_regression_58.t
