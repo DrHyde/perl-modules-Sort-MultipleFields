@@ -1,11 +1,11 @@
 #!perl -w
-# $Id: 00_regression_510.t,v 1.1 2008/07/24 17:44:22 drhyde Exp $
+# $Id: 00_regression_510.t,v 1.2 2008/07/24 18:03:59 drhyde Exp $
 
 use strict;
 
 use Test::More;
 plan skip_all => "perl >= 5.10.0 required for mfsortmaker" if($] < 5.010);
-plan tests => 1;
+plan tests => 2;
 
 use Sort::MultipleFields qw(mfsort mfsortmaker);
 
@@ -19,7 +19,23 @@ my $library = [
     { author => 'Asimov', title => 'David Starr, Space Ranger' }
 ];
 
-my $crazysort = sub {
+# sort function instead of shortcut
+my $usersupplied = mfsortmaker(sub {
+    author => sub {
+        return -1 if($_[0] =~ '^C');
+        return  1 if($_[1] =~ '^C');
+        return  1 if($_[0] =~ '^A');
+        return -1 if($_[1] =~ '^A');
+        return  0;
+    }
+});
+is_deeply(
+    [map { $_->{author} } sort $usersupplied @{$library}],
+    [qw(Clarke Clarke Clarke Hoyle Asimov Asimov Asimov)],
+    'user-supplied sort function works'
+);
+
+my $crazysort = mfsortmaker(sub {
     author => 'asc',
     title => 'asc',
     year => 'desc',
@@ -35,7 +51,7 @@ my $crazysort = sub {
         } @_;
         $in[0] <=> $in[1];
     }
-};
+});
 my $crazyinput = [
     sort {
         rand() < 0.5 ? -1 : 1
@@ -62,9 +78,9 @@ my $crazyoutput = [
         author => 'asc', title => 'asc'
     }, $library
 ];
-my $func = mfsortmaker($crazysort);
 is_deeply(
-    [sort $func @{$crazyinput}],
+    # sort by author, title, reverse publication date, and colour(!)
+    [sort $crazysort @{$crazyinput}],
     $crazyoutput,
-    "mfsortmaker works"
+    "batshit four-field sort works"
 );

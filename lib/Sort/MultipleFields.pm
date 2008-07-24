@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.5 2008/07/24 17:44:22 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.6 2008/07/24 18:03:59 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -132,15 +132,17 @@ sub mfsort(&@) {
 =head2 mfsortmaker
 
 This function is only available in perl 5.10.0 and higher.  It is a
-fatal error to use it on any earlier version of perl.
+fatal error to use it on any earlier version of perl.  The error
+message will blame your code cos I don't want the bug reports :-)
 
-This takes a sort spec exactly as C<mfsort> but returns the name of a
+This takes a sort spec subroutine reference like C<mfsort> but returns
+the name of a
 subroutine that you can use with the built-in C<sort>.
 
-    my $sorter = mfsortmaker {
+    my $sorter = mfsortmaker(sub {
         author => 'asc',
         title  => 'asc'
-    };
+    });
     @sorted = sort $sorter @unsorted;
 
 =cut
@@ -148,7 +150,7 @@ subroutine that you can use with the built-in C<sort>.
 # NB contrary to the above doco, if called with a true second arg it
 # returns a subref, to avoid segfaults in 5.8.8
 
-sub mfsortmaker($) {
+sub mfsortmaker {
     my $spec = shift;
     my $calledfrommfsort = shift;
     die(
@@ -193,14 +195,21 @@ sub mfsortmaker($) {
 
 =head1 BUGS, LIMITATIONS and FEEDBACK
 
-If you find any bugs please report them either using
+If you find undocumented bugs please report them either using
 L<http://rt.cpan.org/> or by email.  Ideally, I would like to receive
 sample data and a test file, which fails with the latest version of
 the module but will pass when I fix the bug.
 
-=head1 SEE ALSO
+C<mfsortmaker> is not available on perls below version 5.10.0.  That's
+because it makes perl segfault.  I think that's a bug in perl.  But if
+you can come up with a fix, I would be *most* grateful.  If you do,
+please submit it via RT or email as above.
 
-FIXME
+=cut
+
+# =head1 SEE ALSO
+# 
+# FIXME
 
 =head1 AUTHOR, COPYRIGHT and LICENCE
 
