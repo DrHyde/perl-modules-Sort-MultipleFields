@@ -1,11 +1,11 @@
 #!perl -w
-# $Id: 00_regression.t,v 1.4 2008/07/24 17:44:22 drhyde Exp $
+# $Id: 00_regression.t,v 1.5 2008/07/25 13:25:47 drhyde Exp $
 
 use strict;
 
-use Test::More tests => 17;
+use Test::More tests => 19;
 
-use Sort::MultipleFields qw(mfsort);
+use Sort::MultipleFields qw(mfsort mfsortmaker);
 
 my $library = [
     { author => 'Hoyle',  title => 'Black Cloud, The' },
@@ -187,4 +187,28 @@ is_deeply(
     [mfsort \&{$crazysort}, $crazyinput],
     $crazyoutput,
     "four-field sort works, including a Mad Sort"
+);
+
+# sort function instead of shortcut
+my $usersupplied = mfsortmaker(sub {
+    author => sub {
+        return -1 if($_[0] =~ '^C');
+        return  1 if($_[1] =~ '^C');
+        return  1 if($_[0] =~ '^A');
+        return -1 if($_[1] =~ '^A');
+        return  0;
+    }
+});
+is_deeply(
+    [map { $_->{author} } sort $usersupplied @{$library}],
+    [qw(Clarke Clarke Clarke Hoyle Asimov Asimov Asimov)],
+    'mfsortmaker works'
+);
+
+$crazysort = mfsortmaker($crazysort);
+is_deeply(
+    # sort by author, title, reverse publication date, and colour(!)
+    [sort $crazysort @{$crazyinput}],
+    $crazyoutput,
+    "mfsortmaker even works for a really crazy sort spec"
 );

@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.7 2008/07/24 21:05:32 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.8 2008/07/25 13:25:47 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -15,8 +15,6 @@ use Exporter; # 5.6's Exporter doesn't export its import function, so
 @EXPORT_OK = qw(mfsort mfsortmaker);
 
 $VERSION = '1.0';
-
-my $subcounter = 0;
 
 =head1 NAME
 
@@ -126,20 +124,16 @@ sub mfsort(&@) {
     (grep { reftype($_) ne 'HASH' } @records) &&
         die(__PACKAGE__."::mfsort: Can only sort hash-refs\n");
 
-    my $sortsub = mfsortmaker($spec, 1);
+    my $sortsub = mfsortmaker($spec);
     @records = sort { $sortsub->($a, $b) } @records;
     return wantarray() ? @records : \@records;
 }
 
 =head2 mfsortmaker
 
-This function is only available in perl 5.10.0 and higher.  It is a
-fatal error to use it on any earlier version of perl.  The error
-message will blame your code cos I don't want the bug reports :-)
-
 This takes a sort spec subroutine reference like C<mfsort> but returns
-the name of a
-subroutine that you can use with the built-in C<sort>.
+a reference to a subroutine that you can use with the built-in C<sort>
+function.
 
     my $sorter = mfsortmaker(sub {
         author => 'asc',
@@ -147,24 +141,18 @@ subroutine that you can use with the built-in C<sort>.
     });
     @sorted = sort $sorter @unsorted;
 
-=cut
+Note that you need to store the generated subroutine in a variable before
+using it, otherwise the parser gets confused.
 
-# NB contrary to the above doco, if called with a true second arg it
-# returns a subref, to avoid segfaults in 5.8.8
+Using this function to generate functions for C<sort> to use should be
+considered to be experimental, as it can make some versions of perl
+segfault
+
+=cut
 
 sub mfsortmaker {
     my $spec = shift;
-    my $calledfrommfsort = shift;
-    die(
-        __PACKAGE__."::mfsortmaker: your perl is too old for this function\n".
-	'It was called from '.join(' ', (caller(1))[1, 3]).".\n".
-	"This is a bug in the calling code\n"
-    ) if($] < 5.010 && !$calledfrommfsort);
-
-    die(__PACKAGE__."::mfsortmaker: no sort spec\n") unless(reftype($spec) eq 'CODE');
-
     my @spec = $spec->();
-    my $sortname = __PACKAGE__.'::__generated_'.$subcounter; $subcounter++;
 
     my $sortsub = sub($$) { 0 }; # default is to not sort at all
     while(@spec) { # eat this from the end towards the beginning
@@ -184,15 +172,12 @@ sub mfsortmaker {
             $oldsortsub->($_[0], $_[1])
         }
     }
-    if($calledfrommfsort) {
-        return $sortsub;
-    } else {
-        {
-            no strict 'refs';
-            *{$sortname} = \&{$sortsub};
-        }
-        return $sortname;
-    }
+    # extra layer of wrapping seems to prevent segfaults in 5.8.8. WTF?
+    # return $sortsub
+    return sub($$) {
+        # use Data::Dumper;print(map { Dumper($_) } @_);print "\n\n";
+        $sortsub->(@_)
+    };
 }
 
 =head1 BUGS, LIMITATIONS and FEEDBACK
@@ -202,10 +187,11 @@ L<http://rt.cpan.org/> or by email.  Ideally, I would like to receive
 sample data and a test file, which fails with the latest version of
 the module but will pass when I fix the bug.
 
-C<mfsortmaker> is not available on perls below version 5.10.0.  That's
-because it makes perl segfault.  I think that's a bug in perl.  But if
-you can come up with a fix, I would be *most* grateful.  If you do,
-please submit it via RT or email as above.
+For some unknown reason, passing C<sort> a particularly complex subroutine
+generated using mfsortmaker can sometimes make perl 5.8.8 (and possibly
+earlier versions) segfault.  I *think* I've worked around it, and at least
+it doesn't happen for me any more, but YMMV.  It was something of a
+Heisenbug so the current fix doesn't fill me with confidence.
 
 =cut
 
