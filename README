@@ -11,3 +11,6 @@ then do this to install the module:
     make
     make test
     make install (you may need to do this as root)
+
+or to install it and all its dependencies from the CPAN:
+    sudo perl -MCPAN -e 'install qw(Sort::MultipleFields)'

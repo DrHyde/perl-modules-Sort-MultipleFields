@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.8 2008/07/25 13:25:47 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.9 2008/07/25 18:57:32 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -146,7 +146,12 @@ using it, otherwise the parser gets confused.
 
 Using this function to generate functions for C<sort> to use should be
 considered to be experimental, as it can make some versions of perl
-segfault
+segfault.  It appears to be reliable if you do this:
+
+    my $sorter = mfsortmaker(...);
+    @sorted = sort { $sorter->($a, $b) } @unsorted;
+
+and that's what the C<mfsort> function does internally.
 
 =cut
 
@@ -195,9 +200,10 @@ Heisenbug so the current fix doesn't fill me with confidence.
 
 =cut
 
-# =head1 SEE ALSO
-# 
-# FIXME
+=head1 SEE ALSO
+
+L<Sort::Fields> for sorting data consisting of strings with fixed-length
+fields in them.
 
 =head1 AUTHOR, COPYRIGHT and LICENCE
 
