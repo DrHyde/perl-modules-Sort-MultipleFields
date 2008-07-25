@@ -1,4 +1,4 @@
-# $Id: MultipleFields.pm,v 1.9 2008/07/25 18:57:32 drhyde Exp $
+# $Id: MultipleFields.pm,v 1.10 2008/07/25 21:42:44 drhyde Exp $
 
 package Sort::MultipleFields;
 
@@ -14,7 +14,7 @@ use Exporter; # 5.6's Exporter doesn't export its import function, so
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(mfsort mfsortmaker);
 
-$VERSION = '1.0';
+$VERSION = '0.001_01';
 
 =head1 NAME
 
