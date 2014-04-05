@@ -14,7 +14,7 @@ use Exporter; # 5.6's Exporter doesn't export its import function, so
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(mfsort mfsortmaker);
 
-$VERSION = '1.0';
+$VERSION = '1.01';
 
 =head1 NAME
 
@@ -101,11 +101,11 @@ Sort ASCIIbetically, descending (ie C<$b cmp $a>)
 
 =item numascending, or numasc
 
-Sort numerically, ascending (ie C<$a <=> $b>)
+Sort numerically, ascending (ie C<< $a <=> $b >>)
 
 =item numdescending, or numdesc
 
-Sort numerically, descending (ie C<$b <=> $a>)
+Sort numerically, descending (ie C<< $b <=> $a >>)
 
 =back
 
