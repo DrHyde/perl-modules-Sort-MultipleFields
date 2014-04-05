@@ -4,7 +4,7 @@ WriteMakefile(
     META_MERGE => {
         license => 'other',
         resources => {
-            repository => 'https://github.com/DrHyde/perl-modules-Sort-MultipleFields'
+            repository => 'https://github.com/DrHyde/perl-modules-Sort-MultipleFields',
             bugtracker => 'https://github.com/DrHyde/perl-modules-Sort-MultipleFields/issues'
         }
     },
