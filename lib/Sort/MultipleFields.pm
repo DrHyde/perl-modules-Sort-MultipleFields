@@ -187,8 +187,8 @@ sub mfsortmaker {
 
 =head1 BUGS, LIMITATIONS and FEEDBACK
 
-If you find undocumented bugs please report them either using
-L<http://rt.cpan.org/> or by email.  Ideally, I would like to receive
+Bug reports should be made on Github or by email.
+Ideally, I would like to receive
 sample data and a test file, which fails with the latest version of
 the module but will pass when I fix the bug.
 
