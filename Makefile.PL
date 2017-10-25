@@ -2,7 +2,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME         => 'Sort::MultipleFields',
     META_MERGE => {
-        license => 'other',
+        license => 'open_source',
         resources => {
             repository => 'https://github.com/DrHyde/perl-modules-Sort-MultipleFields',
             bugtracker => 'https://github.com/DrHyde/perl-modules-Sort-MultipleFields/issues'
